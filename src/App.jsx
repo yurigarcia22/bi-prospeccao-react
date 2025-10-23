@@ -12,7 +12,8 @@ import MetasPage from './pages/MetasPage.jsx';
 import SettingsLayout from './pages/SettingsLayout.jsx';
 import SettingsUsersPage from './pages/SettingsUsersPage.jsx';
 import CompleteProfilePage from './pages/CompleteProfilePage';
-import SettingsCompanyPage from './pages/SettingsCompanyPage'; // Adicionado
+import SettingsCompanyPage from './pages/SettingsCompanyPage';
+import SettingsFunnelPage from './pages/SettingsFunnelPage'; // Importamos a nova página
 
 function App() {
   const { session, userProfile, loading } = useUser();
@@ -38,8 +39,9 @@ function App() {
           <Route path="metas" element={<MetasPage />} />
           {userProfile?.role === 'admin' && (
             <Route path="settings" element={<SettingsLayout />}>
-              <Route index element={<SettingsCompanyPage />} /> {/* Atualizado */}
+              <Route index element={<SettingsCompanyPage />} />
               <Route path="users" element={<SettingsUsersPage />} />
+              <Route path="funnel" element={<SettingsFunnelPage />} /> {/* Nova rota aqui */}
             </Route>
           )}
           <Route path="*" element={<DashboardPage />} />

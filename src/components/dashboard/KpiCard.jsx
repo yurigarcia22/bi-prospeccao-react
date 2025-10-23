@@ -1,7 +1,8 @@
 // src/components/dashboard/KpiCard.jsx
+import React from 'react';
 import { ShineBorder } from '../ui/ShineBorder.jsx';
 
-export default function KpiCard({ title, value, color }) {
+function KpiCard({ title, value, color }) {
   const colorClasses = {
     success: '!text-emerald-500 dark:!text-emerald-400',
     danger: '!text-red-600 dark:!text-red-500',
@@ -18,3 +19,5 @@ export default function KpiCard({ title, value, color }) {
     </div>
   );
 }
+
+export default React.memo(KpiCard);

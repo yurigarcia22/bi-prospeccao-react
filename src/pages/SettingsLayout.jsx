@@ -1,11 +1,12 @@
 // src/pages/SettingsLayout.jsx
 
 import { NavLink, Outlet } from 'react-router-dom';
-import { Building, Users } from 'lucide-react';
+import { Building, Users, Filter } from 'lucide-react'; // Adicionamos o ícone Filter
 
 const settingsNav = [
   { name: 'Empresa', path: '/settings', icon: Building, end: true },
   { name: 'Usuários', path: '/settings/users', icon: Users, end: false },
+  { name: 'Funil', path: '/settings/funnel', icon: Filter, end: false }, // Nova linha aqui
 ];
 
 export default function SettingsLayout() {

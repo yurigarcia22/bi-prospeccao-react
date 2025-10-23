@@ -30,20 +30,23 @@ function Avatar({ name }) {
   );
 }
 
-export function Podium({ title = "Ranking", periodLabel, data, loading = false }) {
+// MUDANÇA AQUI: O componente agora aceita "rankingSelector" como uma propriedade
+export function Podium({ title = "Ranking", periodLabel, data, loading = false, rankingSelector = null }) {
   const sorted = useMemo(() => [...data].sort((a, b) => b.count - a.count), [data]);
   const top3 = sorted.slice(0, 3);
-  const formatCount = (n) => `${n} reunião${n === 1 ? "" : "es"}`;
+  const formatCount = (n) => `${n}`;
 
   return (
     <div className="relative w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
         <div>
           <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2 text-slate-900 dark:text-white">
             <Trophy className="h-5 w-5 text-violet-500" /> {title}
           </h2>
           {periodLabel && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{periodLabel}</p>}
         </div>
+        {/* Renderiza o seletor (dropdown) aqui se ele for passado */}
+        {rankingSelector}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 rounded-2xl bg-slate-100/50 dark:bg-white/5 p-5 relative overflow-hidden">
@@ -66,7 +69,7 @@ export function Podium({ title = "Ranking", periodLabel, data, loading = false }
                         <div className="p-3 flex items-center justify-between"><MedalBadge place={place} />{e && <span className="text-xs text-slate-500 dark:text-slate-300">{formatCount(e.count)}</span>}</div>
                         <div className={cn("mx-3 mb-3 rounded-xl h-3 bg-gradient-to-r", e ? style.bg : "from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800")} />
                         <div className="px-3 pb-3 flex items-center gap-2"><Avatar name={e?.name || "-"} />
-                          <div className="min-w-0"><div className="text-sm font-semibold truncate">{e?.name || "-"}</div><div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{e ? formatCount(e.count) : "0 reuniões"}</div></div>
+                          <div className="min-w-0"><div className="text-sm font-semibold truncate">{e?.name || "-"}</div><div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{e ? formatCount(e.count) : "0"}</div></div>
                         </div>
                       </motion.div>
                     </AnimatePresence>

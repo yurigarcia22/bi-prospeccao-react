@@ -1,0 +1,61 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # Executa todo dia às 3:00 AM UTC (meia-noite no seu fuso horário de Brasília -03:00)
+    # Você pode ajustar o horário se preferir. Use https://crontab.guru/ para ajuda.
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Permite rodar manualmente pela aba Actions no GitHub
+
+jobs:
+  ping_supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18' # Ou a versão do Node que preferir
+
+      - name: Install Supabase client
+        run: npm install @supabase/supabase-js
+
+      - name: Run Ping Script
+        # Este script faz uma consulta MUITO simples ao Supabase
+        # Apenas para registrar atividade, sem usar muitos recursos.
+        run: |
+          node -e "
+          const { createClient } = require('@supabase/supabase-js');
+          const supabaseUrl = process.env.SUPABASE_URL;
+          const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+          if (!supabaseUrl || !supabaseAnonKey) {
+            console.error('Supabase URL ou Anon Key não configurados como segredos no GitHub.');
+            process.exit(1);
+          }
+
+          const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+          async function pingDb() {
+            try {
+              // Consulta MUITO leve: seleciona apenas 1 linha da tabela profiles (ou outra pequena)
+              // Usar a ANON KEY é suficiente e mais seguro aqui.
+              const { data, error } = await supabase
+                .from('profiles') // Pode ser qualquer tabela pequena que você tenha
+                .select('id')
+                .limit(1);
+
+              if (error) throw error;
+              console.log('Ping Supabase bem-sucedido!', data);
+            } catch (error) {
+              console.error('Erro ao pingar Supabase:', error.message);
+              process.exit(1); // Falha a action se houver erro
+            }
+          }
+          pingDb();
+          "
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
