@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { SignInPage, SignInForm, SignUpForm } from '../components/ui/SignInPage';
 
-// Dados de exemplo para os depoimentos que aparecem na tela
 const sampleTestimonials = [
   {
     avatarSrc: "https://randomuser.me/api/portraits/women/57.jpg",
@@ -34,6 +33,7 @@ export default function AuthPage() {
     if (error) {
       alert(error.error_description || error.message);
     }
+    // Não precisa mais recarregar a página aqui, o UserContext vai detectar a mudança
     setLoading(false);
   };
 
@@ -43,6 +43,7 @@ export default function AuthPage() {
     const formData = new FormData(event.currentTarget);
     const { fullName, companyName, email, password } = Object.fromEntries(formData.entries());
 
+    // 1. Cria a empresa
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .insert({ name: companyName })
@@ -55,35 +56,35 @@ export default function AuthPage() {
       return;
     }
 
+    // 2. Cria o usuário na autenticação (Isso vai disparar o gatilho no Supabase)
+    //    Passamos company_id e role via options.data para o gatilho usar
     const { data: { user }, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName }
+        data: {
+          full_name: fullName, // Passa o nome para o gatilho
+          company_id: companyData.id, // Passa o ID da empresa para o gatilho
+          role: 'admin', // Define o primeiro usuário como admin
+          status: 'ativo' // Define o status inicial
+        }
       }
     });
 
     if (authError) {
+      // Se der erro no signUp, talvez a empresa precise ser removida (lógica mais avançada)
+      // Por agora, apenas mostramos o erro.
       alert('Erro ao criar usuário: ' + authError.message);
       setLoading(false);
       return;
     }
 
-    const { error: profileError } = await supabase.from('profiles').insert({
-      id: user.id,
-      full_name: fullName,
-      email: email,
-      company_id: companyData.id,
-      role: 'admin',
-      status: 'ativo'
-    });
+    // 3. REMOVEMOS A INSERÇÃO MANUAL NO 'profiles' DAQUI
+    //    O gatilho do Supabase é responsável por criar o perfil agora.
 
-    if (profileError) {
-      alert('Erro ao criar o perfil do usuário: ' + profileError.message);
-    } else {
-      alert('Conta criada com sucesso! Por favor, verifique seu e-mail para confirmar a conta.');
-      setIsLoginView(true);
-    }
+    // Apenas informamos o usuário
+    alert('Conta criada com sucesso! Por favor, verifique seu e-mail para confirmar a conta.');
+    setIsLoginView(true); // Muda para a tela de login
     setLoading(false);
   };
 
