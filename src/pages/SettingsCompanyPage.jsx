@@ -109,7 +109,7 @@ export default function SettingsCompanyPage() {
                 id="companyName"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm focus:border-brand-accent focus:ring-brand-accent sm:text-sm p-2"
+                className="block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm focus:border-brand-accent focus:ring-brand-accent sm:text-sm p-2 text-slate-900 dark:text-slate-100"
               />
             </div>
           </div>

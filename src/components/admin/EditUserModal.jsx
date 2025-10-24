@@ -36,11 +36,11 @@ export default function EditUserModal({ user, isOpen, onClose, onSave }) {
             <div className="grid grid-cols-2 gap-4">
               <label className={`flex items-center p-4 rounded-lg border cursor-pointer ${newRole === 'user' ? 'border-brand-accent bg-brand-accent/10' : 'border-slate-300'}`}>
                 <input type="radio" name="role" value="user" checked={newRole === 'user'} onChange={() => setNewRole('user')} className="h-4 w-4 text-brand-accent" />
-                <span className="ml-3 text-sm font-medium">Usuário</span>
+                <span className="ml-3 text-sm font-medium text-slate-900 dark:text-slate-100">Usuário</span>
               </label>
               <label className={`flex items-center p-4 rounded-lg border cursor-pointer ${newRole === 'admin' ? 'border-brand-accent bg-brand-accent/10' : 'border-slate-300'}`}>
                 <input type="radio" name="role" value="admin" checked={newRole === 'admin'} onChange={() => setNewRole('admin')} className="h-4 w-4 text-brand-accent" />
-                <span className="ml-3 text-sm font-medium">Administrador</span>
+                <span className="ml-3 text-sm font-medium text-slate-900 dark:text-slate-100">Administrador</span>
               </label>
             </div>
           </div>

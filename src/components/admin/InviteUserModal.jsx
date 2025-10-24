@@ -27,18 +27,18 @@ export default function InviteUserModal({ isOpen, onClose, onInvite }) {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Endereço de e-mail</label>
-            <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@empresa.com" required className="mt-1 block w-full p-2.5 border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 rounded-lg" />
+            <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@empresa.com" required className="mt-1 block w-full p-2.5 border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-900 dark:text-slate-100" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Função</label>
             <div className="grid grid-cols-2 gap-4">
               <label className={`flex items-center p-4 rounded-lg border cursor-pointer ${role === 'user' ? 'border-brand-accent bg-brand-accent/10' : 'border-slate-300 dark:border-slate-700'}`}>
                 <input type="radio" name="role" value="user" checked={role === 'user'} onChange={() => setRole('user')} className="h-4 w-4 text-brand-accent focus:ring-brand-accent" />
-                <span className="ml-3 text-sm font-medium">Usuário</span>
+                <span className="ml-3 text-sm font-medium text-slate-900 dark:text-slate-100">Usuário</span>
               </label>
               <label className={`flex items-center p-4 rounded-lg border cursor-pointer ${role === 'admin' ? 'border-brand-accent bg-brand-accent/10' : 'border-slate-300 dark:border-slate-700'}`}>
                 <input type="radio" name="role" value="admin" checked={role === 'admin'} onChange={() => setRole('admin')} className="h-4 w-4 text-brand-accent focus:ring-brand-accent" />
-                <span className="ml-3 text-sm font-medium">Administrador</span>
+                <span className="ml-3 text-sm font-medium text-slate-900 dark:text-slate-100">Administrador</span>
               </label>
             </div>
           </div>
