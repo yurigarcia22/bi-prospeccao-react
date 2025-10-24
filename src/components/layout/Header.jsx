@@ -70,7 +70,7 @@ export default function Header() {
             {/* ... (Resto do código do Header sem alterações) ... */}
             {isSuperAdmin && allCompanies.length > 0 && (
               <div className="relative">
-                <select value={selectedCompanyId} onChange={handleCompanyChange} className="appearance-none bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm font-semibold rounded-md pl-3 pr-8 py-1">
+                <select value={selectedCompanyId} onChange={handleCompanyChange} className="appearance-none bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm font-semibold rounded-md pl-3 pr-8 py-1 text-slate-900 dark:text-slate-100">
                   <option value="" disabled>Trocar Visão...</option>
                   {allCompanies.map(comp => <option key={comp.id} value={comp.id}>{comp.name}</option>)}
                 </select>

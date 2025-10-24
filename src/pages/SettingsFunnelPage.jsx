@@ -178,7 +178,7 @@ export default function SettingsFunnelPage() {
 
         <div className="space-y-4 max-w-2xl">
           {loading ? (
-            <p>Carregando métricas...</p>
+            <p className="text-slate-500 dark:text-slate-400">Carregando métricas...</p>
           ) : (
             metrics.map((metric) => {
               // Verifica se é a métrica fixa pela chave ou pelo ID temporário padrão

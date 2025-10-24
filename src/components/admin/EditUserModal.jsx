@@ -28,8 +28,8 @@ export default function EditUserModal({ user, isOpen, onClose, onSave }) {
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <div><span className="text-sm text-slate-500">Nome</span><p>{user.full_name}</p></div>
-            <div><span className="text-sm text-slate-500">E-mail</span><p>{user.email}</p></div>
+            <div><span className="text-sm text-slate-500 dark:text-slate-400">Nome</span><p className="text-slate-900 dark:text-slate-100">{user.full_name}</p></div>
+            <div><span className="text-sm text-slate-500 dark:text-slate-400">E-mail</span><p className="text-slate-900 dark:text-slate-100">{user.email}</p></div>
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Função</label>

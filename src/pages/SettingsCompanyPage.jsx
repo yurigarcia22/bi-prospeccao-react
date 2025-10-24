@@ -84,7 +84,7 @@ export default function SettingsCompanyPage() {
     }
   };
 
-  if (!company) return <div>Carregando informações da empresa...</div>;
+  if (!company) return <div className="text-slate-500 dark:text-slate-400">Carregando informações da empresa...</div>;
 
   return (
     <>
@@ -127,7 +127,7 @@ export default function SettingsCompanyPage() {
                 )}
               </div>
               <label htmlFor="logo-upload" className="relative cursor-pointer rounded-md bg-white dark:bg-slate-700 font-medium text-brand-accent hover:text-brand-accent/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-brand-accent focus-within:ring-offset-2 p-2 border border-slate-300 dark:border-slate-600">
-                <span>Fazer upload</span>
+                <span className="text-slate-900 dark:text-slate-100">Fazer upload</span>
                 <input id="logo-upload" name="logo-upload" type="file" className="sr-only" onChange={handleFileChange} accept="image/png, image/jpeg, image/svg+xml" />
               </label>
             </div>

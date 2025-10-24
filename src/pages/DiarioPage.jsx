@@ -6,10 +6,7 @@ import { supabase } from '../supabaseClient';
 import { useUser } from '../contexts/UserContext.jsx';
 import { ShineBorder } from '../components/ui/ShineBorder.jsx';
 
-// =====================================================================================
-// --- COMPONENTES DE UI E LÓGICA ---
-// =====================================================================================
-
+// --- Componentes ProgressBar, clampInt, useHotkeySave, NumberField, StickySaveBar (permanecem iguais) ---
 function ProgressBar({ label, current, goal }) {
     const percentage = goal > 0 ? Math.min((current / goal) * 100, 100) : 0;
     return (
@@ -84,6 +81,7 @@ function StickySaveBar({ disabled, status, onSave, onReset, onDuplicate }) {
         </div>
     );
 }
+// --- Fim dos Componentes ---
 
 function DiarioForm({ onSave, funnelMetrics }) {
     const [v, setV] = useState(() => getEmptyFormState(funnelMetrics));
@@ -93,18 +91,24 @@ function DiarioForm({ onSave, funnelMetrics }) {
 
     useEffect(() => {
         const today = new Date().toISOString().slice(0, 10);
-        const draft = localStorage.getItem(`daily-draft:${v.data}`);
-        
+        const currentDataDate = v.data || today; // Usa a data atual do estado ou hoje
+        const draft = localStorage.getItem(`daily-draft:${currentDataDate}`);
+
+        let initialState;
         if (draft) {
             const parsedDraft = JSON.parse(draft);
-            // Garante que todas as métricas do funil atual existam no rascunho
-            const currentMetrics = { ...getEmptyFormState(funnelMetrics).metrics, ...parsedDraft.metrics };
-            setV({ ...parsedDraft, metrics: currentMetrics });
+            const draftMetrics = parsedDraft.metrics || {};
+            const initialMetrics = {};
+            funnelMetrics.forEach(metric => {
+                initialMetrics[metric.key] = draftMetrics[metric.key] || 0; // Preenche com rascunho ou 0
+            });
+             initialState = { ...getEmptyFormState(funnelMetrics), ...parsedDraft, metrics: initialMetrics, data: currentDataDate };
         } else {
-            setV(getEmptyFormState(funnelMetrics));
+            initialState = { ...getEmptyFormState(funnelMetrics), data: currentDataDate };
         }
-    }, [v.data, funnelMetrics]);
+        setV(initialState);
 
+    }, [v.data, funnelMetrics]); // Depende da data e das métricas
 
     useEffect(() => { localStorage.setItem(`daily-draft:${v.data}`, JSON.stringify(v)); }, [v]);
     useHotkeySave(async () => { await handleSave(); });
@@ -117,40 +121,48 @@ function DiarioForm({ onSave, funnelMetrics }) {
             yesterday.setDate(yesterday.getDate() - 1);
             updateDate(yesterday.toISOString().slice(0, 10));
         }
+        // Não faz nada se for 'personalizado' para manter a data escolhida
     }, [dateSelection]);
 
+    // LÓGICA CENTRAL: Encontra a métrica de propostas E CALCULA A CONTAGEM
     const proposalsMetric = funnelMetrics.find(m => m.key === 'propostas');
-    const proposalsCount = proposalsMetric ? (v.metrics?.[proposalsMetric.key] || 0) : 0;
+    const proposalsCount = proposalsMetric && v.metrics ? (v.metrics[proposalsMetric.key] || 0) : 0;
 
     useEffect(() => {
+        // Atualiza os detalhes da proposta com base na contagem
         setProposalsDetails(currentDetails => {
             const newDetails = [...currentDetails];
             while (newDetails.length < proposalsCount) {
                 newDetails.push({ nome_cliente: '', valor: '' });
             }
-            return newDetails.slice(0, proposalsCount);
+            return newDetails.slice(0, proposalsCount); // Garante que não haja extras
         });
-    }, [proposalsCount]);
+    }, [proposalsCount]); // Depende SÓ da contagem
 
 
     const handleProposalDetailChange = (index, field, value) => {
         const newDetails = [...proposalsDetails];
-        newDetails[index][field] = value;
-        setProposalsDetails(newDetails);
+        if(newDetails[index]) { // Verifica se o índice existe
+             newDetails[index][field] = value;
+             setProposalsDetails(newDetails);
+        }
     };
 
     function updateMetric(key, val) {
         setV(prev => ({
             ...prev,
             metrics: {
-                ...prev.metrics,
+                ...(prev.metrics || {}), // Garante que metrics exista
                 [key]: val,
             }
         }));
     }
 
     function updateDate(newDate) {
+        // Limpa o rascunho antigo antes de mudar a data
+        localStorage.removeItem(`daily-draft:${v.data}`);
         setV(prev => ({ ...prev, data: newDate }));
+        // O useEffect [v.data, funnelMetrics] vai recarregar o estado para a nova data
     }
 
     function updateObs(newObs) {
@@ -160,12 +172,24 @@ function DiarioForm({ onSave, funnelMetrics }) {
     function duplicateFromYesterday() {
         const d = new Date(v.data);
         d.setDate(d.getDate() - 1);
-        const key = `daily-draft:${d.toISOString().slice(0, 10)}`;
+        const yesterdayDate = d.toISOString().slice(0, 10);
+        const key = `daily-draft:${yesterdayDate}`;
         const y = localStorage.getItem(key);
         if (y) {
             const parsed = JSON.parse(y);
-            setV({ ...parsed, data: v.data });
-            setDateSelection('personalizado');
+            // Mantém a data atual, mas pega as métricas e obs de ontem
+            const currentMetricsWithYesterdayValues = { ...getEmptyFormState(funnelMetrics).metrics };
+            for(const metricKey in parsed.metrics) {
+                if(currentMetricsWithYesterdayValues.hasOwnProperty(metricKey)){
+                    currentMetricsWithYesterdayValues[metricKey] = parsed.metrics[metricKey];
+                }
+            }
+            setV(prev => ({
+                ...prev,
+                 metrics: currentMetricsWithYesterdayValues,
+                 observacoes: parsed.observacoes || ""
+             }));
+            // Não muda a data selecionada
             alert("Dados de ontem carregados como rascunho!");
         } else {
             alert("Nenhum rascunho de ontem encontrado.");
@@ -191,10 +215,11 @@ function DiarioForm({ onSave, funnelMetrics }) {
             await onSave(v, proposalsDetails);
             setStatus("success");
             setTimeout(() => setStatus("idle"), 2000);
-            resetAll();
+            resetAll(); // Reseta após o sucesso
         } catch (err) {
             console.error(err);
             setStatus("error");
+            // Não reseta em caso de erro para o usuário não perder dados
         }
     }
 
@@ -230,13 +255,15 @@ function DiarioForm({ onSave, funnelMetrics }) {
                 ))}
             </div>
 
+            {/* A LÓGICA DE RENDERIZAÇÃO CONDICIONAL */}
             <AnimatePresence>
-                {proposalsCount > 0 && (
+                {proposalsMetric && proposalsCount > 0 && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6 space-y-4"
+                        transition={{ duration: 0.3 }}
+                        className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6 space-y-4 overflow-hidden" // Adicionado overflow-hidden
                     >
                         <h3 className="font-semibold text-slate-800 dark:text-slate-200">Detalhes das Propostas Criadas</h3>
                         {proposalsDetails.map((p, index) => (
@@ -267,13 +294,14 @@ function DiarioForm({ onSave, funnelMetrics }) {
     );
 }
 
+
 export default function DiarioPage() {
     const { userProfile, company, session, funnelMetrics, loading } = useUser();
     const [goals, setGoals] = useState({});
     const [progress, setProgress] = useState({ weekly: {}, monthly: {} });
 
     const fetchProgressAndGoals = useCallback(async () => {
-        if (!session?.user?.id || funnelMetrics.length === 0) return;
+        if (!session?.user?.id || !funnelMetrics || funnelMetrics.length === 0) return; // Verifica se funnelMetrics existe
 
         const today = new Date();
         const ano = today.getFullYear();
@@ -287,11 +315,18 @@ export default function DiarioPage() {
         const fimMes = new Date(ano, mes, 0).toISOString().slice(0, 10);
         const { data: monthlyPerformance } = await supabase.from('prospeccao_diaria').select('metrics, data').eq('user_id', session.user.id).gte('data', inicioMes).lte('data', fimMes);
 
-        if (!monthlyPerformance) return;
+        if (!monthlyPerformance) {
+             setProgress({ weekly: {}, monthly: {} }); // Reseta se não houver dados
+             return;
+        };
 
         const monthlyProgress = monthlyPerformance.reduce((acc, row) => {
-            for (const key in row.metrics) {
-                acc[key] = (acc[key] || 0) + (row.metrics[key] || 0);
+            if(row.metrics){ // Verifica se metrics existe
+                for (const key in row.metrics) {
+                    if(acc.hasOwnProperty(key) || funnelMetrics.some(fm => fm.key === key)){ // Soma apenas se for uma métrica válida
+                        acc[key] = (acc[key] || 0) + (row.metrics[key] || 0);
+                    }
+                }
             }
             return acc;
         }, {});
@@ -303,8 +338,12 @@ export default function DiarioPage() {
 
         const weeklyPerformance = monthlyPerformance.filter(d => new Date(d.data + 'T00:00:00') >= startOfWeek);
         const weeklyProgress = weeklyPerformance.reduce((acc, row) => {
-            for (const key in row.metrics) {
-                acc[key] = (acc[key] || 0) + (row.metrics[key] || 0);
+             if(row.metrics){
+                for (const key in row.metrics) {
+                     if(acc.hasOwnProperty(key) || funnelMetrics.some(fm => fm.key === key)){
+                        acc[key] = (acc[key] || 0) + (row.metrics[key] || 0);
+                     }
+                }
             }
             return acc;
         }, {});
@@ -330,7 +369,7 @@ export default function DiarioPage() {
 
         const { data: insertedDaily, error: dailyError } = await supabase
             .from('prospeccao_diaria')
-            .insert(dailyRecord)
+            .upsert(dailyRecord, { onConflict: 'user_id, data' }) // Usa upsert para evitar duplicatas no mesmo dia
             .select()
             .single();
 
@@ -338,6 +377,10 @@ export default function DiarioPage() {
 
         const proposalsMetric = funnelMetrics.find(m => m.key === 'propostas');
         if (proposalsMetric && proposalsData && proposalsData.length > 0) {
+            // Primeiro, deleta propostas antigas ligadas a este lançamento diário (caso esteja editando)
+            await supabase.from('propostas').delete().eq('prospeccao_diaria_id', insertedDaily.id);
+
+            // Depois, insere as novas
             const proposalsToInsert = proposalsData.map(p => ({
                 nome_cliente: p.nome_cliente,
                 valor: parseFloat(p.valor) || 0,
@@ -351,12 +394,14 @@ export default function DiarioPage() {
 
             const { error: proposalsError } = await supabase.from('propostas').insert(proposalsToInsert);
             if (proposalsError) throw proposalsError;
+        } else if (proposalsMetric) {
+             // Se não há proposalsData mas existe a métrica, garante que propostas antigas sejam deletadas
+             await supabase.from('propostas').delete().eq('prospeccao_diaria_id', insertedDaily.id);
         }
 
         await fetchProgressAndGoals();
     };
-    
-    // CORREÇÃO: Mostra as 3 primeiras métricas do funil, sejam elas quais forem.
+
     const metricsForProgress = funnelMetrics.slice(0, 3);
 
     if (loading) {
@@ -373,12 +418,14 @@ export default function DiarioPage() {
                         {metricsForProgress.map(metric => (
                             <ProgressBar key={metric.key} label={metric.name} current={progress.weekly[metric.key] || 0} goal={Math.ceil((goals[metric.key] || 0) / 4.33)} />
                         ))}
+                         {metricsForProgress.length === 0 && <p className="text-center text-sm text-slate-500">Configure seu funil para ver o progresso.</p>}
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-lg space-y-6">
                         <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-200 text-center">Progresso Mensal</h3>
                          {metricsForProgress.map(metric => (
                             <ProgressBar key={metric.key} label={metric.name} current={progress.monthly[metric.key] || 0} goal={goals[metric.key] || 0} />
                         ))}
+                        {metricsForProgress.length === 0 && <p className="text-center text-sm text-slate-500">Configure seu funil para ver o progresso.</p>}
                     </div>
                 </div>
                 <ShineBorder />

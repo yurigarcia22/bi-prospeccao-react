@@ -159,7 +159,7 @@ export default function MetasPage() {
           </div>
           <div>
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Ano</label>
-            <input type="number" value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="mt-1 block w-full p-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md" />
+            <input type="number" value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="mt-1 block w-full p-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md text-slate-900 dark:text-slate-100" />
           </div>
         </div>
         
@@ -170,7 +170,7 @@ export default function MetasPage() {
                     {funnelMetrics.map(metric => (
                         <div key={metric.key}>
                             <label className="text-sm text-slate-600 dark:text-slate-300">Meta de {metric.name}</label>
-                            <input type="number" name={metric.key} value={goalFormData[metric.key] || 0} onChange={(e) => handleGoalsChange(metric.key, e.target.value)} className="mt-1 block w-full p-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md" />
+                            <input type="number" name={metric.key} value={goalFormData[metric.key] || 0} onChange={(e) => handleGoalsChange(metric.key, e.target.value)} className="mt-1 block w-full p-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-md text-slate-900 dark:text-slate-100" />
                         </div>
                     ))}
                 </div>
@@ -180,7 +180,7 @@ export default function MetasPage() {
             </div>
         )}
         
-        {isLoading ? <div className="text-center p-8 text-slate-500">Carregando dados de performance...</div>
+        {isLoading ? <div className="text-center p-8 text-slate-500 dark:text-slate-400">Carregando dados de performance...</div>
         : (
             <>
             {isAdmin && selectedUserId === 'todos' ? (
@@ -192,7 +192,7 @@ export default function MetasPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center p-8 text-slate-500">Nenhum dado da equipe para exibir no período selecionado.</div>
+                <div className="text-center p-8 text-slate-500 dark:text-slate-400">Nenhum dado da equipe para exibir no período selecionado.</div>
               )
             ) : (
                 progressData.length > 0 && progressData[0] ? (
@@ -203,7 +203,7 @@ export default function MetasPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center p-8 text-slate-500">Nenhum dado de meta ou progresso para a seleção atual.</div>
+                    <div className="text-center p-8 text-slate-500 dark:text-slate-400">Nenhum dado de meta ou progresso para a seleção atual.</div>
                 )
             )}
             </>

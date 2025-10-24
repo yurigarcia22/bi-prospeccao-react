@@ -14,7 +14,7 @@ const medalStyles = {
 function MedalBadge({ place }) {
   const { bg } = medalStyles[place];
   return (
-    <div className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-black/80", "bg-gradient-to-b", bg)}>
+    <div className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-black/80 dark:text-white/90", "bg-gradient-to-b", bg)}>
       <Medal className="h-3.5 w-3.5" />
       {place === 1 ? "Ouro" : place === 2 ? "Prata" : "Bronze"}
     </div>

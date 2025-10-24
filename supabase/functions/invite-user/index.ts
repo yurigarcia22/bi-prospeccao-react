@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     
     const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
       email,
-      { redirectTo: 'http://localhost:5173/complete-profile' } // URL explícita para o frontend
+      { redirectTo: `${Deno.env.get('APP_BASE_URL')}/complete-profile` } // Linha Nova - Usa o Segredo + Caminho
     )
 
     if (inviteError) {
