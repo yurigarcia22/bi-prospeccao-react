@@ -202,23 +202,59 @@ function DiarioForm({ onSave, funnelMetrics }) {
     }
 
     async function handleSave() {
+        // Validação de propostas
         if (proposalsCount > 0) {
             for (const p of proposalsDetails) {
                 if (!p.nome_cliente || !p.valor) {
                     alert("Por favor, preencha o nome e o valor para todas as propostas.");
+                    setStatus("error");
+                    setTimeout(() => setStatus("idle"), 3000);
                     return;
                 }
             }
         }
+
+        // Validação básica de dados
+        if (!v.data) {
+            alert("Por favor, selecione uma data.");
+            setStatus("error");
+            setTimeout(() => setStatus("idle"), 3000);
+            return;
+        }
+
         setStatus("saving");
         try {
             await onSave(v, proposalsDetails);
             setStatus("success");
-            setTimeout(() => setStatus("idle"), 2000);
-            resetAll(); // Reseta após o sucesso
+            
+            // Limpa o rascunho do localStorage após salvar com sucesso
+            localStorage.removeItem(`daily-draft:${v.data}`);
+            
+            setTimeout(() => {
+                setStatus("idle");
+                resetAll(); // Reseta após o sucesso e após mostrar a mensagem
+            }, 2000);
         } catch (err) {
-            console.error(err);
+            console.error("Erro ao salvar lançamento:", err);
+            
+            // Extrai mensagem de erro mais amigável
+            let errorMessage = "Erro ao salvar. Tente novamente.";
+            if (err?.message) {
+                errorMessage = err.message;
+            } else if (typeof err === 'string') {
+                errorMessage = err;
+            }
+            
+            // Mostra alerta com detalhes do erro (apenas em desenvolvimento)
+            if (process.env.NODE_ENV === 'development') {
+                console.error("Detalhes do erro:", err);
+            }
+            
+            alert(`Erro ao salvar: ${errorMessage}`);
             setStatus("error");
+            
+            // Volta para idle após 5 segundos para permitir nova tentativa
+            setTimeout(() => setStatus("idle"), 5000);
             // Não reseta em caso de erro para o usuário não perder dados
         }
     }
@@ -356,50 +392,148 @@ export default function DiarioPage() {
     }, [fetchProgressAndGoals]);
 
     const handleSaveToSupabase = async (formData, proposalsData) => {
-        if (!userProfile || !company || !session) throw new Error("Usuário ou empresa não encontrados.");
+        try {
+            // Validações iniciais
+            if (!userProfile || !company || !session) {
+                throw new Error("Usuário ou empresa não encontrados.");
+            }
 
-        const dailyRecord = {
-            data: formData.data,
-            metrics: formData.metrics,
-            observacoes: formData.observacoes,
-            user_id: session.user.id,
-            bdr_nome: userProfile.full_name,
-            company_id: company.id,
-        };
+            if (!formData || !formData.data) {
+                throw new Error("Data do lançamento é obrigatória.");
+            }
 
-        const { data: insertedDaily, error: dailyError } = await supabase
-            .from('prospeccao_diaria')
-            .upsert(dailyRecord, { onConflict: 'user_id, data' }) // Usa upsert para evitar duplicatas no mesmo dia
-            .select()
-            .single();
+            if (!formData.metrics || typeof formData.metrics !== 'object') {
+                throw new Error("Métricas não encontradas ou formato inválido.");
+            }
 
-        if (dailyError) throw dailyError;
+            // Garante que metrics seja um objeto válido
+            const metricsToSave = formData.metrics || {};
+            
+            // Valida se funnelMetrics existe antes de usar
+            if (!funnelMetrics || !Array.isArray(funnelMetrics)) {
+                console.warn("FunnelMetrics não encontrado, usando métricas padrão.");
+            }
 
-        const proposalsMetric = funnelMetrics.find(m => m.key === 'propostas');
-        if (proposalsMetric && proposalsData && proposalsData.length > 0) {
-            // Primeiro, deleta propostas antigas ligadas a este lançamento diário (caso esteja editando)
-            await supabase.from('propostas').delete().eq('prospeccao_diaria_id', insertedDaily.id);
-
-            // Depois, insere as novas
-            const proposalsToInsert = proposalsData.map(p => ({
-                nome_cliente: p.nome_cliente,
-                valor: parseFloat(p.valor) || 0,
-                data_proposta: formData.data,
-                status: 'Pendente',
-                prospeccao_diaria_id: insertedDaily.id,
+            const dailyRecord = {
+                data: formData.data,
+                metrics: metricsToSave,
+                observacoes: formData.observacoes || '',
                 user_id: session.user.id,
-                bdr_nome: userProfile.full_name,
+                bdr_nome: userProfile.full_name || '',
                 company_id: company.id,
-            }));
+            };
 
-            const { error: proposalsError } = await supabase.from('propostas').insert(proposalsToInsert);
-            if (proposalsError) throw proposalsError;
-        } else if (proposalsMetric) {
-             // Se não há proposalsData mas existe a métrica, garante que propostas antigas sejam deletadas
-             await supabase.from('propostas').delete().eq('prospeccao_diaria_id', insertedDaily.id);
+            console.log("Tentando salvar lançamento diário:", dailyRecord);
+
+            // Tenta fazer upsert primeiro sem especificar onConflict (mais compatível)
+            let insertedDaily = null;
+            
+            // Primeiro, verifica se já existe um registro para esta data e usuário
+            const { data: existingRecord } = await supabase
+                .from('prospeccao_diaria')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .eq('data', formData.data)
+                .maybeSingle();
+
+            if (existingRecord) {
+                // Atualiza registro existente
+                const { data: updatedRecord, error: updateError } = await supabase
+                    .from('prospeccao_diaria')
+                    .update(dailyRecord)
+                    .eq('id', existingRecord.id)
+                    .select()
+                    .single();
+
+                if (updateError) {
+                    console.error("Erro ao atualizar registro:", updateError);
+                    throw new Error(`Erro ao salvar: ${updateError.message || JSON.stringify(updateError)}`);
+                }
+
+                insertedDaily = updatedRecord;
+            } else {
+                // Insere novo registro
+                const { data: newRecord, error: insertError } = await supabase
+                    .from('prospeccao_diaria')
+                    .insert(dailyRecord)
+                    .select()
+                    .single();
+
+                if (insertError) {
+                    console.error("Erro ao inserir registro:", insertError);
+                    throw new Error(`Erro ao salvar: ${insertError.message || JSON.stringify(insertError)}`);
+                }
+
+                insertedDaily = newRecord;
+            }
+
+            if (!insertedDaily || !insertedDaily.id) {
+                throw new Error("Erro: Registro não foi criado corretamente.");
+            }
+
+            // Processa propostas se necessário
+            if (funnelMetrics && Array.isArray(funnelMetrics)) {
+                const proposalsMetric = funnelMetrics.find(m => m.key === 'propostas');
+                
+                if (proposalsMetric && proposalsData && proposalsData.length > 0) {
+                    // Primeiro, deleta propostas antigas ligadas a este lançamento diário
+                    const { error: deleteError } = await supabase
+                        .from('propostas')
+                        .delete()
+                        .eq('prospeccao_diaria_id', insertedDaily.id);
+
+                    if (deleteError) {
+                        console.warn("Erro ao deletar propostas antigas:", deleteError);
+                        // Não falha o salvamento por causa disso, apenas loga
+                    }
+
+                    // Depois, insere as novas propostas
+                    const proposalsToInsert = proposalsData
+                        .filter(p => p.nome_cliente && p.valor) // Filtra propostas válidas
+                        .map(p => ({
+                            nome_cliente: p.nome_cliente.trim(),
+                            valor: parseFloat(p.valor) || 0,
+                            data_proposta: formData.data,
+                            status: 'Pendente',
+                            prospeccao_diaria_id: insertedDaily.id,
+                            user_id: session.user.id,
+                            bdr_nome: userProfile.full_name || '',
+                            company_id: company.id,
+                        }));
+
+                    if (proposalsToInsert.length > 0) {
+                        const { error: proposalsError } = await supabase
+                            .from('propostas')
+                            .insert(proposalsToInsert);
+
+                        if (proposalsError) {
+                            console.error("Erro ao inserir propostas:", proposalsError);
+                            throw new Error(`Erro ao salvar propostas: ${proposalsError.message || JSON.stringify(proposalsError)}`);
+                        }
+                    }
+                } else if (proposalsMetric) {
+                    // Se não há proposalsData mas existe a métrica, garante que propostas antigas sejam deletadas
+                    const { error: deleteError } = await supabase
+                        .from('propostas')
+                        .delete()
+                        .eq('prospeccao_diaria_id', insertedDaily.id);
+
+                    if (deleteError) {
+                        console.warn("Erro ao deletar propostas antigas:", deleteError);
+                        // Não falha o salvamento por causa disso
+                    }
+                }
+            }
+
+            // Atualiza progresso e metas
+            await fetchProgressAndGoals();
+            
+            console.log("Lançamento salvo com sucesso!");
+        } catch (error) {
+            console.error("Erro completo no handleSaveToSupabase:", error);
+            // Re-lança o erro para ser capturado pelo handleSave
+            throw error;
         }
-
-        await fetchProgressAndGoals();
     };
 
     const metricsForProgress = funnelMetrics.slice(0, 3);
