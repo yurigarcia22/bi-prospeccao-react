@@ -95,22 +95,19 @@ export default function DashboardPage() {
                     return acc;
                 }, { vendas_ganhas: 0, propostas_perdidas: 0, valor_ganho: 0, propostas_em_aberto: 0, valor_em_aberto: 0 });
                 
+                // Filtrar métricas de propostas do funil (propostas têm sua própria seção)
+                const funnelMetricsWithoutProposals = funnelMetrics.filter(m => m.key !== 'propostas');
+                
                 const calcRate = (a, b) => (b > 0 ? `${((a / b) * 100).toFixed(1)}%` : '0.0%');
                 const rates = {};
-                for (let i = 0; i < funnelMetrics.length - 1; i++) {
-                    const currentMetric = funnelMetrics[i];
-                    const nextMetric = funnelMetrics[i+1];
+                // Calcular taxas de conversão apenas para métricas do funil (sem propostas)
+                for (let i = 0; i < funnelMetricsWithoutProposals.length - 1; i++) {
+                    const currentMetric = funnelMetricsWithoutProposals[i];
+                    const nextMetric = funnelMetricsWithoutProposals[i+1];
                     rates[currentMetric.key] = {
                         label: `${currentMetric.name.split(' ')[0]} → ${nextMetric.name.split(' ')[0]}`,
                         value: calcRate(kpis[nextMetric.key], kpis[currentMetric.key])
                     };
-                }
-
-                if(funnelMetrics.some(m => m.key === 'propostas')) {
-                    rates['propostas_vendas'] = {
-                        label: 'Propostas → Vendas',
-                        value: calcRate(proposalTotals.vendas_ganhas, kpis.propostas)
-                    }
                 }
 
                 const dataByBdr = (dailyData || []).reduce((acc, row) => { 
@@ -122,7 +119,8 @@ export default function DashboardPage() {
                     return acc; 
                 }, {});
                 const bdrNames = Object.keys(dataByBdr);
-                const mainMetricsForChart = funnelMetrics.slice(0, 3);
+                // Usar métricas do funil (sem propostas) para o gráfico de desempenho geral
+                const mainMetricsForChart = funnelMetricsWithoutProposals.slice(0, 3);
                 const desempenhoGeral = { 
                     categories: bdrNames, 
                     series: mainMetricsForChart.map(metric => ({
@@ -195,7 +193,7 @@ export default function DashboardPage() {
                     <div>
                         <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-4">Métricas do Funil</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            {funnelMetrics.map(metric => (
+                            {funnelMetrics.filter(metric => metric.key !== 'propostas').map(metric => (
                                 <KpiCard key={metric.key} title={metric.name} value={data.kpis[metric.key] || 0} />
                             ))}
                         </div>
@@ -204,6 +202,9 @@ export default function DashboardPage() {
                     <div>
                          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-4">Métricas de Propostas</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                           {funnelMetrics.find(m => m.key === 'propostas') && (
+                               <KpiCard title="Propostas" value={data.kpis.propostas || 0} />
+                           )}
                            <KpiCard title="Propostas em Aberto" value={data.kpis.propostas_em_aberto || 0} />
                            <KpiCard title="Valor em Aberto" value={formatCurrency(data.kpis.valor_em_aberto)} />
                            <KpiCard title="Propostas Perdidas" value={data.kpis.propostas_perdidas || 0} color="danger" />
