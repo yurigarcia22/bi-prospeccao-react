@@ -202,9 +202,6 @@ export default function DashboardPage() {
                     <div>
                          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-4">Métricas de Propostas</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                           {funnelMetrics.find(m => m.key === 'propostas') && (
-                               <KpiCard title="Propostas" value={data.kpis.propostas || 0} />
-                           )}
                            <KpiCard title="Propostas em Aberto" value={data.kpis.propostas_em_aberto || 0} />
                            <KpiCard title="Valor em Aberto" value={formatCurrency(data.kpis.valor_em_aberto)} />
                            <KpiCard title="Propostas Perdidas" value={data.kpis.propostas_perdidas || 0} color="danger" />
